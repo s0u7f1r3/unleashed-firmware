@@ -1,4 +1,4 @@
-ARG distrib=debian:11
+ARG distrib=debian:11 AS base
 FROM $distrib
 
 ARG user=builder
@@ -10,6 +10,7 @@ ENV PATH = "${PATH}:/home/${user}/.local/bin"
 # Configure system packages
 RUN apt-get update && apt-get install -y curl wget vim git python3 python3-pip build-essential
 
+FROM base AS builder
 # Setup builder user
 RUN useradd -ms /bin/bash ${user}
 RUN mkdir /dist
