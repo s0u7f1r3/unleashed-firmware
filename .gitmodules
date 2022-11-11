@@ -1,0 +1,15 @@
+[submodule "repos/Eng1n33r/unleashed-firmware"]
+	path = repos/Eng1n33r/unleashed-firmware
+	url = https://github.com/DarkFlippers/unleashed-firmware
+[submodule "repos/UberGuidoZ/Flipper"]
+	path = repos/UberGuidoZ/Flipper
+	url = https://github.com/UberGuidoZ/Flipper
+[submodule "repos/justcallmekoko/ESP32Marauder"]
+	path = repos/justcallmekoko/ESP32Marauder
+	url = https://github.com/justcallmekoko/ESP32Marauder.git
+[submodule "repos/espressif/esptool"]
+	path = repos/espressif/esptool
+	url = https://github.com/espressif/esptool.git
+[submodule "repos/UberGuidoZ/Marauder_BINs"]
+	path = repos/UberGuidoZ/Marauder_BINs
+	url = https://github.com/UberGuidoZ/Marauder_BINs.git
