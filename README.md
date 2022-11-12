@@ -1,14 +1,19 @@
 ### Firmwares
 
 #### Bruteforce OK
+```
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git tag | grep un1
 un1-bcfb12 OK
+```
 #un1-d1c79a KO - no mre apps
 
 ### Debug diff
+```
 git log -p -U0 un1-bcfb12..origin/dev
 git log -p -U0 un1-bcfb12..un1-d1c79a
+```
 
+```
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git tag | grep un1
 # un1-0f9ea9 OK
 # un4-0f9ea9 OK
@@ -53,17 +58,23 @@ OK 04e16970 Add CAME 12bit 303MHz to SubBrute
 OK a8b48771 (tag: un4-0f9ea9) rfid fuzzer, ability to change time delay
 
 baf50348..c76fcf50
+```
 
 
+```
 $ git --no-pager log -U0 -p baf50348..c76fcf50 applications/plugins/subbrute
+```
 
 
+```
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git --no-pager log --decorate --oneline un1-0f9ea9..un1-e3a5df 
+```
 
 
 
 
 
+```
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git show un1-0f9ea9 | grep ^commit
 commit 2288855163796c8c4aaca3e5600aa8a02ecbb978
 
@@ -119,12 +130,14 @@ moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git --no-pager log --
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git --no-pager log --decorate un2-0f9ea9..un1-e3a5df -p
 
 git submodule update --init --recursive
+```
 
 
 
 -------
 
 
+```
 git fetch origin master
 git checkout --force -B master origin/master
 git reset --hard
@@ -134,10 +147,12 @@ git submodule foreach git fetch
 git submodule foreach git checkout --force -B master origin/master
 git submodule foreach git reset --hard
 git submodule foreach git clean -fdx
+```
 
 
 
 
+```
 git fetch origin dev
 git checkout --force -B builder un1-e3a5df
 git reset --hard
@@ -147,9 +162,74 @@ git submodule foreach git fetch
 #git submodule foreach git checkout --force -B builder un1-e3a5df
 git submodule foreach git reset --hard
 git submodule foreach git clean -ffdx
+```
 
 -----
 
 
+```
 git submodule foreach git fetch
 git submodule foreach git pull
+```
+
+
+
+----
+
+
+
+```
+root
+|--- repos
+     |--- Unleashed
+          |--- subbrute
+
+$ git show --oneline
+301757ab (HEAD -> subbrute) add honeywell subbrute protocol
+diff --git a/repos/Eng1n33r/unleashed-firmware b/repos/Eng1n33r/unleashed-firmware
+index 1d196b41..5288f507 160000
+--- a/repos/Eng1n33r/unleashed-firmware
++++ b/repos/Eng1n33r/unleashed-firmware
+@@ -1 +1 @@
+-Subproject commit 1d196b41e98387dd20ad4ce66c011ca9e9f443d7
++Subproject commit 5288f5072f259898db2f4a3cd2a9abd4041d7a93
+
+$ git -C repos/Eng1n33r/unleashed-firmware/ show --oneline
+5288f507 (HEAD -> dev) add honeywell subrute protocol
+diff --git a/applications/plugins/subbrute b/applications/plugins/subbrute
+index e5eb466c..dd68cda2 160000
+--- a/applications/plugins/subbrute
++++ b/applications/plugins/subbrute
+@@ -1 +1 @@
+-Subproject commit e5eb466c557fe35564d3f69cad9481bf43e71437
++Subproject commit dd68cda20415c2dc143e66567a220222a6e66f62
+
+$ git -C repos/Eng1n33r/unleashed-firmware/applications/plugins/subbrute show --oneline
+dd68cda (HEAD -> honeywell) add honeywell as known protocol
+diff --git a/subbrute_protocols.c b/subbrute_protocols.c
+index 4612413..f95dcdf 100644
+--- a/subbrute_protocols.c
++++ b/subbrute_protocols.c
+@@ -273,6 +273,7 @@ static const char* subbrute_protocol_file_types[] = {
+     [DoitrandFileProtocol] = "Doitrand",
+     [GateTXFileProtocol] = "GateTX",
+     [MagellanFileProtocol] = "Magellan",
++    [HoneywellFileProtocol] = "Honeywell",
+     [IntertechnoV3FileProtocol] = "Intertechno_V3",
+     [UnknownFileProtocol] = "Unknown"};
+ 
+diff --git a/subbrute_protocols.h b/subbrute_protocols.h
+index eeb3f34..966ecfb 100644
+--- a/subbrute_protocols.h
++++ b/subbrute_protocols.h
+@@ -17,6 +17,7 @@ typedef enum {
+     DoitrandFileProtocol,
+     GateTXFileProtocol,
+     MagellanFileProtocol,
++    HoneywellFileProtocol,
+     IntertechnoV3FileProtocol,
+     UnknownFileProtocol,
+     TotalFileProtocol,
+```
+
+https://blog.zenika.com/2017/01/24/pull-request-demystifie/
