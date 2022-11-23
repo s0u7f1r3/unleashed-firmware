@@ -5,7 +5,7 @@
 moker@house:~/flipper/repos/Eng1n33r/flipperzero-firmware$ git tag | grep un1
 un1-bcfb12 OK
 ```
-#un1-d1c79a KO - no mre apps
+#un1-d1c79a KO - no more apps
 
 ### Debug diff
 ```
