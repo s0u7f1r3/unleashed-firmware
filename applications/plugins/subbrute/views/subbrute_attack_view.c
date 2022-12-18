@@ -1,11 +1,13 @@
 #include "subbrute_attack_view.h"
 #include "../subbrute_i.h"
+#include "../subbrute_protocols.h"
+#include "../helpers/gui_top_buttons.h"
 
-#include "assets_icons.h"
 #include <input/input.h>
 #include <gui/elements.h>
-#include <gui/icon_i.h>
-#include <gui/icon_animation_i.h>
+#include <gui/icon.h>
+#include <gui/icon_animation.h>
+#include <assets_icons.h>
 
 #define TAG "SubBruteAttackView"
 
@@ -13,14 +15,19 @@ struct SubBruteAttackView {
     View* view;
     SubBruteAttackViewCallback callback;
     void* context;
-};
-
-typedef struct {
-    SubBruteAttacks index;
+    SubBruteAttacks attack_type;
     uint64_t max_value;
     uint64_t current_step;
     bool is_attacking;
-    bool is_continuous_worker;
+    uint8_t extra_repeats;
+};
+
+typedef struct {
+    SubBruteAttacks attack_type;
+    uint64_t max_value;
+    uint64_t current_step;
+    uint8_t extra_repeats;
+    bool is_attacking;
     IconAnimation* icon;
 } SubBruteAttackViewModel;
 
@@ -38,128 +45,85 @@ void subbrute_attack_view_set_callback(
 bool subbrute_attack_view_input(InputEvent* event, void* context) {
     furi_assert(event);
     furi_assert(context);
+    SubBruteAttackView* instance = context;
 #ifdef FURI_DEBUG
     FURI_LOG_D(TAG, "InputKey: %d", event->key);
 #endif
-    SubBruteAttackView* instance = context;
 
     if(event->key == InputKeyBack && event->type == InputTypeShort) {
-        instance->callback(SubBruteCustomEventTypeBackPressed, instance->context);
+        instance->is_attacking = false;
         with_view_model(
-            instance->view, (SubBruteAttackViewModel * model) {
-                model->is_attacking = false;
-                model->is_continuous_worker = false;
-                return true;
-            });
+            instance->view,
+            SubBruteAttackViewModel * model,
+            { model->is_attacking = false; },
+            true);
+
+        instance->callback(SubBruteCustomEventTypeBackPressed, instance->context);
         return true;
     }
 
-    bool is_attacking = false;
+    bool update = false;
 
-    with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
-            is_attacking = model->is_attacking;
-            return false;
-        });
-
-    //    if(!is_attacking) {
-    //        instance->callback(SubBruteCustomEventTypeTransmitNotStarted, instance->context);
-    //    } else {
-    //        instance->callback(SubBruteCustomEventTypeTransmitStarted, instance->context);
-    //    }
-
-    if(!is_attacking) {
+    if(!instance->is_attacking) {
         if(event->type == InputTypeShort && event->key == InputKeyOk) {
 #ifdef FURI_DEBUG
             FURI_LOG_D(TAG, "InputKey: %d OK", event->key);
 #endif
-            with_view_model(
-                instance->view, (SubBruteAttackViewModel * model) {
-                    model->is_attacking = true;
-                    model->is_continuous_worker = false;
-                    icon_animation_stop(model->icon);
-                    icon_animation_start(model->icon);
-                    return true;
-                });
+            instance->is_attacking = true;
             instance->callback(SubBruteCustomEventTypeTransmitStarted, instance->context);
-            /*if(event->type == InputTypeRepeat && event->key == InputKeyOk) {
-#ifdef FURI_DEBUG
-            FURI_LOG_D(TAG, "InputKey: %d OK. SubBruteCustomEventTypeTransmitContinuousStarted", event->key);
-#endif
-            with_view_model(
-                instance->view, (SubBruteAttackViewModel * model) {
-                    model->is_attacking = true;
-                    model->is_continuous_worker = true;
-                    icon_animation_stop(model->icon);
-                    icon_animation_start(model->icon);
-                    return true;
-                });
-            instance->callback(SubBruteCustomEventTypeTransmitContinuousStarted, instance->context);
-        } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
-#ifdef FURI_DEBUG
-            FURI_LOG_D(TAG, "InputKey: %d OK", event->key);
-#endif
-            with_view_model(
-                instance->view, (SubBruteAttackViewModel * model) {
-                    model->is_attacking = true;
-                    model->is_continuous_worker = false;
-                    icon_animation_stop(model->icon);
-                    icon_animation_start(model->icon);
-                    return true;
-                });
-            instance->callback(SubBruteCustomEventTypeTransmitStarted, instance->context);*/
+            update = true;
         } else if(event->key == InputKeyUp) {
             instance->callback(SubBruteCustomEventTypeSaveFile, instance->context);
+            update = true;
         } else if(event->key == InputKeyDown) {
             instance->callback(SubBruteCustomEventTypeTransmitCustom, instance->context);
+            update = true;
         } else if(event->type == InputTypeShort) {
             if(event->key == InputKeyLeft) {
                 instance->callback(SubBruteCustomEventTypeChangeStepDown, instance->context);
             } else if(event->key == InputKeyRight) {
                 instance->callback(SubBruteCustomEventTypeChangeStepUp, instance->context);
             }
-            //            with_view_model(
-            //                instance->view, (SubBruteAttackViewModel * model) {
-            //                    if(event->key == InputKeyLeft) {
-            //                        model->current_step =
-            //                            ((model->current_step - 1) + model->max_value) % model->max_value;
-            //                    } else if(event->key == InputKeyRight) {
-            //                        model->current_step = (model->current_step + 1) % model->max_value;
-            //                    }
-            //                    return true;
-            //                });
-            //            instance->callback(SubBruteCustomEventTypeChangeStep, instance->context);
+            update = true;
         } else if(event->type == InputTypeRepeat) {
             if(event->key == InputKeyLeft) {
                 instance->callback(SubBruteCustomEventTypeChangeStepDownMore, instance->context);
             } else if(event->key == InputKeyRight) {
                 instance->callback(SubBruteCustomEventTypeChangeStepUpMore, instance->context);
             }
-            /*with_view_model(
-                instance->view, (SubBruteAttackViewModel * model) {
-                    if(event->key == InputKeyLeft) {
-                        model->current_step =
-                            ((model->current_step - 100) + model->max_value) % model->max_value;
-                    } else if(event->key == InputKeyRight) {
-                        model->current_step = (model->current_step + 100) % model->max_value;
-                    }
-                    return true;
-                });
-            instance->callback(SubBruteCustomEventTypeChangeStep, instance->context);*/
+            update = true;
         }
     } else {
+        // ATTACK Mode!
         if((event->type == InputTypeShort || event->type == InputTypeRepeat) &&
            (event->key == InputKeyOk || event->key == InputKeyBack)) {
-            with_view_model(
-                instance->view, (SubBruteAttackViewModel * model) {
-                    model->is_attacking = false;
-                    model->is_continuous_worker = false;
-                    icon_animation_stop(model->icon);
-                    icon_animation_start(model->icon);
-                    return true;
-                });
+            instance->is_attacking = false;
             instance->callback(SubBruteCustomEventTypeTransmitNotStarted, instance->context);
+
+            update = true;
         }
+    }
+
+    if(update) {
+        with_view_model(
+            instance->view,
+            SubBruteAttackViewModel * model,
+            {
+                if(model->is_attacking != instance->is_attacking) {
+                    if(instance->is_attacking) {
+                        icon_animation_stop(model->icon);
+                        icon_animation_start(model->icon);
+                    } else {
+                        icon_animation_stop(model->icon);
+                    }
+                }
+
+                model->attack_type = instance->attack_type;
+                model->max_value = instance->max_value;
+                model->current_step = instance->current_step;
+                model->is_attacking = instance->is_attacking;
+            },
+            true);
     }
 
     return true;
@@ -173,16 +137,23 @@ SubBruteAttackView* subbrute_attack_view_alloc() {
     view_set_context(instance->view, instance);
 
     with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
+        instance->view,
+        SubBruteAttackViewModel * model,
+        {
             model->icon = icon_animation_alloc(&A_Sub1ghz_14);
             view_tie_icon_animation(instance->view, model->icon);
-            return false;
-        });
+        },
+        true);
 
     view_set_draw_callback(instance->view, (ViewDrawCallback)subbrute_attack_view_draw);
     view_set_input_callback(instance->view, subbrute_attack_view_input);
     view_set_enter_callback(instance->view, subbrute_attack_view_enter);
     view_set_exit_callback(instance->view, subbrute_attack_view_exit);
+
+    instance->attack_type = SubBruteAttackTotalCount;
+    instance->max_value = 0x00;
+    instance->current_step = 0;
+    instance->is_attacking = false;
 
     return instance;
 }
@@ -203,10 +174,10 @@ void subbrute_attack_view_free(SubBruteAttackView* instance) {
 #endif
 
     with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
-            icon_animation_free(model->icon);
-            return false;
-        });
+        instance->view,
+        SubBruteAttackViewModel * model,
+        { icon_animation_free(model->icon); },
+        false);
 
     view_free(instance->view);
     free(instance);
@@ -222,20 +193,12 @@ void subbrute_attack_view_set_current_step(SubBruteAttackView* instance, uint64_
 #ifdef FURI_DEBUG
     //FURI_LOG_D(TAG, "Set step: %d", current_step);
 #endif
+    instance->current_step = current_step;
     with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
-            model->current_step = current_step;
-            return true;
-        });
-}
-
-void subbrute_attack_view_set_worker_type(SubBruteAttackView* instance, bool is_continuous_worker) {
-    furi_assert(instance);
-    with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
-            model->is_continuous_worker = is_continuous_worker;
-            return true;
-        });
+        instance->view,
+        SubBruteAttackViewModel * model,
+        { model->current_step = current_step; },
+        true);
 }
 
 // We need to call init every time, because not every time we calls enter
@@ -245,24 +208,39 @@ void subbrute_attack_view_init_values(
     uint8_t index,
     uint64_t max_value,
     uint64_t current_step,
-    bool is_attacking) {
+    bool is_attacking,
+    uint8_t extra_repeats) {
 #ifdef FURI_DEBUG
-    FURI_LOG_D(
-        TAG, "init, index: %d, max_value: %d, current_step: %d", index, max_value, current_step);
+    FURI_LOG_I(
+        TAG,
+        "INIT, attack_type: %d, max_value: %lld, current_step: %lld, extra_repeats: %d",
+        index,
+        max_value,
+        current_step,
+        extra_repeats);
 #endif
+    instance->attack_type = index;
+    instance->max_value = max_value;
+    instance->current_step = current_step;
+    instance->is_attacking = is_attacking;
+    instance->extra_repeats = extra_repeats;
+
     with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
+        instance->view,
+        SubBruteAttackViewModel * model,
+        {
             model->max_value = max_value;
-            model->index = index;
+            model->attack_type = index;
             model->current_step = current_step;
             model->is_attacking = is_attacking;
+            model->extra_repeats = extra_repeats;
             if(is_attacking) {
                 icon_animation_start(model->icon);
             } else {
                 icon_animation_stop(model->icon);
             }
-            return true;
-        });
+        },
+        true);
 }
 
 void subbrute_attack_view_exit(void* context) {
@@ -272,101 +250,63 @@ void subbrute_attack_view_exit(void* context) {
     FURI_LOG_D(TAG, "subbrute_attack_view_exit");
 #endif
     with_view_model(
-        instance->view, (SubBruteAttackViewModel * model) {
-            icon_animation_stop(model->icon);
-            return false;
-        });
-}
-
-void elements_button_top_left(Canvas* canvas, const char* str) {
-    const Icon* icon = &I_ButtonUp_7x4;
-
-    const uint8_t button_height = 12;
-    const uint8_t vertical_offset = 9; //
-    const uint8_t horizontal_offset = 3;
-    const uint8_t string_width = canvas_string_width(canvas, str);
-    const uint8_t icon_h_offset = 3;
-    const uint8_t icon_width_with_offset = icon->width + icon_h_offset;
-    const uint8_t icon_v_offset = icon->height; //
-    const uint8_t button_width = string_width + horizontal_offset * 2 + icon_width_with_offset + 1;
-
-    const uint8_t x = 0;
-    const uint8_t y = 0;
-
-    canvas_draw_box(canvas, x, y, button_width, button_height);
-#ifdef FURI_DEBUG
-    FURI_LOG_D(
-        TAG, "lbox, x: %d, y: %d, width: %d, height: %d", x, y, button_width, button_height);
-#endif
-    //    canvas_draw_line(canvas, x + button_width + 0, y, x + button_width + 0, y + button_height - 0); //
-    //    canvas_draw_line(canvas, x + button_width + 1, y, x + button_width + 1, y + button_height - 1);
-    //    canvas_draw_line(canvas, x + button_width + 2, y, x + button_width + 2, y + button_height - 2);
-
-    canvas_invert_color(canvas);
-    canvas_draw_icon(canvas, x + horizontal_offset, y + icon_v_offset, icon);
-    canvas_draw_str(
-        canvas, x + horizontal_offset + icon_width_with_offset, y + vertical_offset, str);
-    canvas_invert_color(canvas);
-}
-
-void elements_button_top_right(Canvas* canvas, const char* str) {
-    const Icon* icon = &I_ButtonDown_7x4;
-
-    const uint8_t button_height = 12;
-    const uint8_t vertical_offset = 9;
-    const uint8_t horizontal_offset = 3;
-    const uint8_t string_width = canvas_string_width(canvas, str);
-    const uint8_t icon_h_offset = 3;
-    const uint8_t icon_width_with_offset = icon->width + icon_h_offset;
-    const uint8_t icon_v_offset = icon->height; // + vertical_offset;
-    const uint8_t button_width = string_width + horizontal_offset * 2 + icon_width_with_offset + 1;
-
-    const uint8_t x = canvas_width(canvas);
-    const uint8_t y = 0;
-
-    canvas_draw_box(canvas, x - button_width, y, button_width, button_height);
-#ifdef FURI_DEBUG
-    FURI_LOG_D(
-        TAG,
-        "rbox, x: %d, y: %d, width: %d, height: %d",
-        x - button_width,
-        y,
-        button_width,
-        button_height);
-#endif
-    //    canvas_draw_line(canvas, x - button_width - 1, y, x + button_width - 1, y + button_height - 0);
-    //    canvas_draw_line(canvas, x - button_width - 2, y, x + button_width - 2, y + button_height - 1);
-    //    canvas_draw_line(canvas, x - button_width - 3, y, x + button_width - 3, y + button_height - 2);
-
-    canvas_invert_color(canvas);
-    canvas_draw_str(canvas, x - button_width + horizontal_offset, y + vertical_offset, str);
-    canvas_draw_icon(canvas, x - horizontal_offset - icon->width, y + icon_v_offset, icon);
-    canvas_invert_color(canvas);
+        instance->view,
+        SubBruteAttackViewModel * model,
+        { icon_animation_stop(model->icon); },
+        false);
 }
 
 void subbrute_attack_view_draw(Canvas* canvas, void* context) {
     furi_assert(context);
     SubBruteAttackViewModel* model = (SubBruteAttackViewModel*)context;
-    char buffer[26];
+    char buffer[64];
 
     const char* attack_name = NULL;
-    attack_name = subbrute_get_menu_name(model->index);
+    attack_name = subbrute_protocol_name(model->attack_type);
+
     // Title
     if(model->is_attacking) {
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, attack_name);
     }
-    // Value
-    canvas_set_font(canvas, FontBigNumbers);
-    snprintf(buffer, sizeof(buffer), "%04d/%04d", (int)model->current_step, (int)model->max_value);
-    canvas_draw_str_aligned(canvas, 64, 17, AlignCenter, AlignTop, buffer);
+
+    // Current Step / Max value
+    const uint8_t y_frequency = 17;
+    if(model->max_value > 9999) {
+        canvas_set_font(canvas, FontBigNumbers);
+        snprintf(buffer, sizeof(buffer), "%05d/", (int)model->current_step);
+        canvas_draw_str_aligned(canvas, 5, y_frequency, AlignLeft, AlignTop, buffer);
+
+        // Second part with another font, because BigNumber is out of screen bounds
+        canvas_set_font(canvas, FontPrimary);
+        snprintf(buffer, sizeof(buffer), "%05d", (int)model->max_value);
+        canvas_draw_str_aligned(canvas, 107, y_frequency + 13, AlignRight, AlignBottom, buffer);
+    } else if(model->max_value <= 0xFF) {
+        canvas_set_font(canvas, FontBigNumbers);
+        snprintf(
+            buffer, sizeof(buffer), "%03d/%03d", (int)model->current_step, (int)model->max_value);
+        canvas_draw_str_aligned(canvas, 64, y_frequency, AlignCenter, AlignTop, buffer);
+    } else {
+        canvas_set_font(canvas, FontBigNumbers);
+        snprintf(
+            buffer, sizeof(buffer), "%04d/%04d", (int)model->current_step, (int)model->max_value);
+        canvas_draw_str_aligned(canvas, 64, y_frequency, AlignCenter, AlignTop, buffer);
+    }
     canvas_set_font(canvas, FontSecondary);
 
+    memset(buffer, 0, sizeof(buffer));
     if(!model->is_attacking) {
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, attack_name);
+
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "x%d",
+            model->extra_repeats + subbrute_protocol_repeats_count(model->attack_type));
+        canvas_draw_str_aligned(canvas, 60, 6, AlignCenter, AlignCenter, buffer);
 
         elements_button_left(canvas, "-1");
         elements_button_right(canvas, "+1");
@@ -374,13 +314,11 @@ void subbrute_attack_view_draw(Canvas* canvas, void* context) {
         elements_button_top_left(canvas, "Save");
         elements_button_top_right(canvas, "Resend");
     } else {
-        if(model->is_continuous_worker) {
-            canvas_invert_color(canvas);
-        }
         // canvas_draw_icon_animation
         const uint8_t icon_h_offset = 0;
-        const uint8_t icon_width_with_offset = model->icon->icon->width + icon_h_offset;
-        const uint8_t icon_v_offset = model->icon->icon->height; // + vertical_offset;
+        const uint8_t icon_width_with_offset =
+            icon_animation_get_width(model->icon) + icon_h_offset;
+        const uint8_t icon_v_offset = icon_animation_get_height(model->icon); // + vertical_offset;
         const uint8_t x = canvas_width(canvas);
         const uint8_t y = canvas_height(canvas);
         canvas_draw_icon_animation(
@@ -390,9 +328,14 @@ void subbrute_attack_view_draw(Canvas* canvas, void* context) {
         float progress_value = (float)model->current_step / model->max_value;
         elements_progress_bar(canvas, 8, 37, 110, progress_value > 1 ? 1 : progress_value);
 
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "x%d",
+            model->extra_repeats + subbrute_protocol_repeats_count(model->attack_type));
+        canvas_draw_str(canvas, 4, y - 8, buffer);
+        canvas_draw_str(canvas, 4, y - 1, "repeats");
+
         elements_button_center(canvas, "Stop");
-        if(model->is_continuous_worker) {
-            canvas_invert_color(canvas);
-        }
     }
 }
